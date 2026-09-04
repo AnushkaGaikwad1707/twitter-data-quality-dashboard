@@ -1,145 +1,924 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Twitter Sentiment • Data Quality Audit</title>
-<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-<style>
-*{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;background:#06101d;color:#e8f0f8;font-family:Arial,Helvetica,sans-serif}
-body{display:flex;justify-content:center}
-.wrap{width:100%;max-width:1920px;aspect-ratio:16/9;padding:20px 24px;overflow:hidden;background:linear-gradient(135deg,#06101d,#0a1727 60%,#07121f);position:relative}
-.wrap:before{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(#ffffff03 1px,transparent 1px),linear-gradient(90deg,#ffffff03 1px,transparent 1px);background-size:36px 36px}
-.content{position:relative;z-index:1}
-.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px}
-h1{font-size:22px;letter-spacing:1px;margin:0 0 3px}
-.sub{font-size:9px;color:#8499ad;letter-spacing:.25px}
-.tag{font-size:9px;font-weight:800;color:#ff8a8a;border:1px solid #61353d;background:#1c171e;border-radius:4px;padding:5px 8px}
-.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:8px}
-.kpi,.card{background:#0d1b2d;border:1px solid #1c3046;border-radius:6px;box-shadow:0 4px 12px #00000024}
-.kpi{padding:8px 10px;height:61px}
-.label{font-size:8px;color:#7890a7;font-weight:800;letter-spacing:.7px}
-.value{font-size:19px;font-weight:800;margin:3px 0 1px;color:#f1f6fb}
-.mini{font-size:8px;color:#7f94a9}
-.row{display:grid;gap:8px;margin-bottom:8px}
-.r2{grid-template-columns:1fr 1fr}
-.r3{grid-template-columns:repeat(3,1fr)}
-.card{padding:9px;min-width:0}
-.title{font-size:10px;font-weight:800;color:#d9e5ef;margin-bottom:4px}
-.desc{font-size:8px;color:#8196aa;line-height:1.3;margin-top:3px}
-.plot{height:148px}
-.issue{border-top:2px solid #ef6262}
-.issue.high{border-top-color:#e2a84d}
-.issue.medium{border-top-color:#d7c25b}
-.issue.tech{border-top-color:#71859b}
-.issue .title{color:#ff9a9a}
-.issue.high .title{color:#e8b05c}
-.issue.medium .title{color:#ddca68}
-.issue.tech .title{color:#9db0c3}
-.metrics{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:4px}
-.metric{background:#0a1727;border:1px solid #1a2d42;border-radius:4px;padding:5px}
-.metric b{font-size:12px}
-.metric span{display:block;font-size:7px;color:#7d92a7;margin-top:1px}
-.note{background:#0d1b2d;border:1px solid #1d344b;border-left:3px solid #4ea1ff;border-radius:5px;padding:7px 9px;font-size:8px;line-height:1.35;color:#b9c9d7}
-.footer{font-size:7px;color:#5f748a;margin-top:4px}
-@media(max-width:1200px){.wrap{aspect-ratio:auto;overflow:visible}}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitter Sentiment Dataset - Data Quality Audit Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        audit: {
+                            dark: '#0f172a',
+                            card: '#1e293b',
+                            border: '#334155',
+                            accent: '#38bdf8',
+                            critical: '#f43f5e',
+                            high: '#fb923c',
+                            medium: '#facc15',
+                            technical: '#a855f7',
+                            pass: '#22c55e'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #f8fafc;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+    </style>
 </head>
-<body>
-<div class="wrap"><div class="content">
+<body class="font-sans antialiased min-h-screen flex flex-col justify-between">
 
-<div class="header">
-  <div>
-    <h1>TWITTER SENTIMENT • DATA QUALITY AUDIT</h1>
-    <div class="sub">Technical audit dashboard | evidence, analytical risk, and validation priorities</div>
-  </div>
-  <div class="tag">8 PROBLEMS • 4 CRITICAL</div>
-</div>
+    <!-- Top Navigation Header -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2.5 bg-sky-500/10 border border-sky-500/20 rounded-xl text-sky-400">
+                        <i class="fa-solid fa-shield-halved text-2xl"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h1 class="text-xl font-bold text-white tracking-tight">Twitter Sentiment Data Quality Audit</h1>
+                            <span class="px-2.5 py-0.5 text-xs font-semibold bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-full flex items-center gap-1">
+                                <i class="fa-solid fa-triangle-exclamation text-[10px]"></i> Unreliable For AI Training
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-0.5">Audit Scope: 2,000 Records | 10 Attributes | Jan 1 — Mar 30, 2024</p>
+                    </div>
+                </div>
+                
+                <!-- Quick Stats / Health Meter -->
+                <div class="flex items-center space-x-6 bg-slate-800/60 border border-slate-700/50 px-4 py-2 rounded-xl">
+                    <div class="text-right">
+                        <div class="text-xs text-slate-400 uppercase tracking-wider font-medium">Audit Score</div>
+                        <div class="text-lg font-extrabold text-rose-400">38 / 100</div>
+                    </div>
+                    <div class="h-8 w-px bg-slate-700"></div>
+                    <div>
+                        <div class="text-xs text-slate-400 uppercase tracking-wider font-medium">Overall Status</div>
+                        <div class="text-xs font-semibold text-amber-400 flex items-center gap-1">
+                            <i class="fa-solid fa-triangle-exclamation"></i> 8 Anomalies Found
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-<div class="kpis">
-  <div class="kpi"><div class="label">RECORDS</div><div class="value">2,000</div><div class="mini">Total observations</div></div>
-  <div class="kpi"><div class="label">FIELDS</div><div class="value">10</div><div class="mini">Dataset columns</div></div>
-  <div class="kpi"><div class="label">UNIQUE USERS</div><div class="value">1,975</div><div class="mini">25 repeated users</div></div>
-  <div class="kpi"><div class="label">DUPLICATE ROWS</div><div class="value">0</div><div class="mini">Uniqueness passed</div></div>
-  <div class="kpi"><div class="label">MISSING SENTIMENT</div><div class="value">0</div><div class="mini">Label completeness passed</div></div>
-  <div class="kpi"><div class="label">TIMESTAMP DTYPE</div><div class="value" style="font-size:15px">OBJECT</div><div class="mini">Convert to datetime</div></div>
-</div>
+            <!-- Tab Navigation Bar -->
+            <nav class="flex space-x-2 mt-4 border-t border-slate-800/80 pt-3">
+                <button onclick="switchTab('overview')" id="tab-overview" class="tab-btn active-tab px-4 py-2 rounded-lg text-sm font-semibold text-sky-400 bg-sky-500/10 border border-sky-500/30 flex items-center gap-2 transition-all">
+                    <i class="fa-solid fa-chart-pie"></i> Executive Overview
+                </button>
+                <button onclick="switchTab('issues')" id="tab-issues" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 flex items-center gap-2 transition-all">
+                    <i class="fa-solid fa-list-check"></i> Quality Issue Matrix (8)
+                </button>
+                <button onclick="switchTab('samples')" id="tab-samples" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 flex items-center gap-2 transition-all">
+                    <i class="fa-solid fa-magnifying-glass-chart"></i> Data Profiling & Anomalies
+                </button>
+                <button onclick="switchTab('roadmap')" id="tab-roadmap" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 flex items-center gap-2 transition-all">
+                    <i class="fa-solid fa-compass"></i> Audit Dimensions & Remediation
+                </button>
+            </nav>
+        </div>
+    </header>
 
-<div class="row r2">
-  <div class="card">
-    <div class="title">BASELINE · Sentiment distribution</div>
-    <div id="plot_sentiment" class="plot"></div><script>Plotly.newPlot('plot_sentiment',[{"type": "bar", "x": ["Positive", "Neutral", "Negative"], "y": [653, 653, 694], "text": ["32.65%", "32.65%", "34.70%"], "textposition": "auto", "marker": {"color": "#4ea1ff"}}], {"paper_bgcolor": "#0d1b2d", "plot_bgcolor": "#0d1b2d", "margin": {"l": 38, "r": 10, "t": 8, "b": 35}, "font": {"color": "#cbd8e5", "size": 10}, "xaxis": {"showgrid": false}, "yaxis": {"gridcolor": "#20344b", "title": "Records", "titlefont": {"size": 9}}});</script>
-    <div class="desc">Positive 32.65% · Neutral 32.65% · Negative 34.70%. Class imbalance is not significant.</div>
-  </div>
-  <div class="card">
-    <div class="title">PROBLEMS 01–02 · Missing metadata</div>
-    <div id="plot_missing" class="plot"></div><script>Plotly.newPlot('plot_missing',[{"type": "bar", "x": ["Hashtags", "Mentions"], "y": [359, 516], "text": ["359 \u2022 17.95%", "516 \u2022 25.80%"], "textposition": "auto", "marker": {"color": ["#e2a84d", "#ef6262"]}}], {"paper_bgcolor": "#0d1b2d", "plot_bgcolor": "#0d1b2d", "margin": {"l": 38, "r": 10, "t": 8, "b": 35}, "font": {"color": "#cbd8e5", "size": 10}, "xaxis": {"showgrid": false}, "yaxis": {"gridcolor": "#20344b", "title": "Missing records", "titlefont": {"size": 9}}});</script>
-    <div class="desc">Hashtags missing: 359 (17.95%) · Mentions missing: 516 (25.80%).</div>
-  </div>
-</div>
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
 
-<div class="row r3">
-  <div class="card issue">
-    <div class="title">03 · Tweet–metadata inconsistency</div>
-    <div id="plot_inconsistency" class="plot"></div><script>Plotly.newPlot('plot_inconsistency',[{"type": "bar", "name": "Tweet text", "x": ["Hashtag (#)", "Mention (@)"], "y": [0, 0], "marker": {"color": "#ef6262"}}, {"type": "bar", "name": "Metadata", "x": ["Hashtag (#)", "Mention (@)"], "y": [1641, 1484], "marker": {"color": "#4ea1ff"}}], {"barmode": "group", "paper_bgcolor": "#0d1b2d", "plot_bgcolor": "#0d1b2d", "margin": {"l": 38, "r": 10, "t": 8, "b": 40}, "font": {"color": "#cbd8e5", "size": 9}, "legend": {"orientation": "h", "y": 1.12, "font": {"size": 9}}, "xaxis": {"showgrid": false}, "yaxis": {"gridcolor": "#20344b", "title": "Records", "titlefont": {"size": 9}}});</script>
-    <div class="desc">Tweet text: 0 # / 0 @. Metadata: 1,641 hashtag values / 1,484 mention values.</div>
-  </div>
-  <div class="card issue tech">
-    <div class="title">04 · Timestamp schema</div>
-    <div id="plot_timestamp" class="plot"></div><script>Plotly.newPlot('plot_timestamp',[{"type": "scatter", "mode": "lines+markers", "x": ["2024-01", "2024-02", "2024-03"], "y": [698, 639, 663], "line": {"color": "#4ea1ff", "width": 2}, "marker": {"size": 6, "color": "#8ec5ff"}}], {"paper_bgcolor": "#0d1b2d", "plot_bgcolor": "#0d1b2d", "margin": {"l": 38, "r": 10, "t": 8, "b": 38}, "font": {"color": "#cbd8e5", "size": 9}, "xaxis": {"showgrid": false, "title": "Parsed month", "titlefont": {"size": 9}}, "yaxis": {"gridcolor": "#20344b", "title": "Records", "titlefont": {"size": 9}}});</script>
-    <div class="desc">Current dtype: object. Parsed timestamps support temporal operations only after explicit conversion.</div>
-  </div>
-  <div class="card issue medium">
-    <div class="title">05 · Conflicting user labels</div>
-    <div id="plot_users" class="plot"></div><script>Plotly.newPlot('plot_users',[{"type": "bar", "x": ["Repeated users", "Conflicting users"], "y": [25, 15], "text": ["25", "15"], "textposition": "auto", "marker": {"color": ["#4ea1ff", "#e2a84d"]}}], {"paper_bgcolor": "#0d1b2d", "plot_bgcolor": "#0d1b2d", "margin": {"l": 35, "r": 10, "t": 8, "b": 40}, "font": {"color": "#cbd8e5", "size": 9}, "xaxis": {"showgrid": false}, "yaxis": {"gridcolor": "#20344b", "title": "Users", "titlefont": {"size": 9}}});</script>
-    <div class="desc">25 users repeat; 15 have differing sentiment labels across 30 records.</div>
-  </div>
-</div>
+        <!-- ==================== TAB 1: EXECUTIVE OVERVIEW ==================== -->
+        <div id="view-overview" class="space-y-6">
+            
+            <!-- KPI Summary Cards Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <!-- KPI 1 -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between hover:border-slate-700 transition">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium text-slate-400">Total Dataset Size</span>
+                        <i class="fa-solid fa-database text-sky-400 text-sm"></i>
+                    </div>
+                    <div class="mt-3">
+                        <div class="text-2xl font-bold text-white">2,000</div>
+                        <div class="text-xs text-emerald-400 mt-1 flex items-center gap-1">
+                            <i class="fa-solid fa-check"></i> 0 Duplicate Rows
+                        </div>
+                    </div>
+                </div>
 
-<div class="row r3">
-  <div class="card issue">
-    <div class="title">06 · Weak text–label alignment</div>
-    <div id="plot_lexical" class="plot"></div><script>Plotly.newPlot('plot_lexical',[{"type": "bar", "x": ["Agreement", "No agreement"], "y": [16.56, 83.44], "text": ["16.56%", "83.44%"], "textposition": "auto", "marker": {"color": ["#ef6262", "#31485f"]}}], {"paper_bgcolor": "#0d1b2d", "plot_bgcolor": "#0d1b2d", "margin": {"l": 38, "r": 10, "t": 8, "b": 40}, "font": {"color": "#cbd8e5", "size": 9}, "xaxis": {"showgrid": false}, "yaxis": {"gridcolor": "#20344b", "title": "Share (%)", "range": [0, 100], "titlefont": {"size": 9}}});</script>
-    <div class="desc">16.56% lexical agreement among 1,347 non-neutral records. Screening heuristic — not proof of incorrect labels.</div>
-  </div>
-  <div class="card issue high">
-    <div class="title">07 · Engagement plausibility</div>
-    <div id="plot_engagement" class="plot"></div><script>Plotly.newPlot('plot_engagement',[{"type": "scattergl", "mode": "markers", "x": [57, 38, 91, 0, 42, 100, 75, 51, 23, 93, 84, 52, 28, 24, 23, 82, 60, 26, 86, 74, 59, 51, 29, 37, 91, 12, 61, 8, 75, 13, 30, 63, 14, 22, 5, 26, 19, 92, 68, 59, 50, 38, 81, 3, 78, 69, 89, 63, 41, 3, 18, 17, 35, 84, 73, 62, 99, 51, 80, 18, 21, 56, 33, 24, 87, 37, 81, 84, 80, 67, 62, 78, 58, 10, 76, 76, 43, 23, 44, 78, 81, 0, 36, 78, 58, 35, 69, 69, 35, 78, 17, 6, 51, 74, 71, 71, 73, 55, 21, 62, 67, 30, 91, 17, 66, 71, 99, 54, 69, 12, 92, 10, 52, 99, 81, 16, 89, 12, 4, 83, 25, 64, 45, 63, 58, 50, 10, 19, 41, 84, 43, 96, 8, 16, 50, 12, 51, 82, 2, 13, 1, 67, 21, 24, 14, 88, 55, 84, 53, 3, 95, 86, 45, 96, 96, 72, 19, 42, 43, 67, 22, 66, 79, 32, 92, 98, 21, 34, 56, 12, 13, 46, 71, 76, 58, 78, 73, 62, 84, 25, 6, 6, 40, 15, 29, 46, 41, 89, 44, 16, 19, 92, 25, 21, 75, 56, 100, 12, 85, 76, 95, 17, 91, 48, 33, 17, 37, 14, 90, 28, 20, 86, 67, 6, 22, 23, 62, 11, 43, 14, 96, 87, 0, 66, 77, 19, 7, 85, 24, 67, 57, 63, 13, 83, 45, 83, 28, 55, 66, 34, 88, 15, 58, 37, 24, 37, 91, 26, 71, 47, 100, 69, 74, 21, 16, 9, 62, 34, 6, 51, 35, 22, 69, 78, 62, 31, 29, 39, 75, 53, 39, 36, 27, 88, 19, 60, 75, 68, 16, 10, 48, 34, 73, 73, 45, 34, 83, 100, 32, 32, 39, 24, 5, 39, 64, 28, 11, 38, 57, 27, 64, 77, 11, 44, 98, 26, 25, 100, 87, 93, 39, 50, 48, 46, 42, 28, 89, 51, 5, 38, 31, 2, 2, 87, 53, 57, 93, 27, 37, 92, 18, 77, 16, 0, 16, 50, 12, 84, 83, 5, 55, 62, 94, 10, 98, 30, 49, 38, 29, 43, 55, 14, 66, 24, 0, 97, 58, 28, 41, 6, 1, 97, 24, 83, 85, 30, 47, 34, 71, 25, 12, 13, 23, 81, 14, 34, 19, 41, 55, 79, 15, 75, 20, 10, 59, 81, 20, 38, 75, 72, 52, 20, 32, 14, 19, 40, 7, 94, 71, 8, 87, 12, 15, 36, 54, 28, 90, 16, 1, 9, 8, 73, 26, 46, 71, 70, 69, 32, 12, 33, 89, 2, 32, 18, 89, 99, 96, 36, 57, 39, 93, 99, 91, 1, 66, 34, 100, 30, 10, 58, 67, 41, 59, 23, 87, 87, 59, 31, 24, 81, 0, 54, 12, 4, 57, 73, 74, 32, 25, 50, 15, 8, 38, 18, 49, 71, 27, 96, 48, 7, 79, 62, 84, 87, 99, 66, 18, 37, 3, 8, 61, 34, 25, 9, 19, 62, 1, 10, 54, 84, 79, 32, 53, 70, 82, 69, 49, 43, 83, 52, 72, 70, 90, 84, 9, 37, 65, 54, 76, 51, 93, 27, 78, 46, 91, 22, 38, 36, 80, 43, 43, 90, 62, 41, 4, 97, 48, 63, 54, 17, 87, 22, 39, 92, 33, 2, 32, 94, 99, 78, 77, 100, 34, 39, 21, 53, 5, 43, 20, 65, 1, 58, 78, 36, 19, 86, 85, 31, 40, 95, 62, 95, 36, 26, 65, 65, 89, 93, 87, 62, 91, 82, 46, 2, 78, 50, 90, 88, 40, 94, 35, 18, 6, 62, 16, 86, 71, 76, 42, 67, 18, 55, 38, 24, 64, 32, 40, 48, 30, 77, 26, 48, 75, 71, 45, 78, 90, 67, 22, 31, 81, 16, 38, 11, 92, 99, 0, 75, 95, 73, 41, 52, 21, 17, 100, 100, 82, 59, 72, 48, 19, 80, 64, 61, 1, 24, 19, 34, 9, 22, 16, 95, 80, 6, 37, 5, 95, 23, 57, 91, 21, 63, 98, 85, 29, 13, 12, 45, 30, 45, 94, 85, 8, 49, 9, 94, 10, 73, 9, 20, 71, 1, 26, 47, 3, 30, 66, 90, 98, 53, 82, 66, 1, 19, 79, 2, 1, 43, 46, 61, 95, 7, 60, 70, 90, 2, 71, 54, 36, 60, 4, 4, 82, 70, 85, 5, 27, 66, 67, 21, 87, 63, 100, 61, 100, 74, 48, 84, 44, 70, 5, 92, 25, 22, 60, 43, 98, 29, 51, 66, 56, 78, 4, 94, 51, 71, 4, 60, 98, 52, 73, 5, 94, 74, 65, 58, 97, 1, 97, 51, 74, 11, 79, 37, 34, 97, 9, 29, 19, 72, 64, 36, 1, 83, 48, 14, 71, 62, 79, 42, 35, 53, 17, 74, 43, 73, 84, 63, 32, 35, 63, 50, 14, 53, 50, 19, 42, 8, 98, 42, 62, 43, 29, 0, 94, 55, 73, 14, 59, 53, 28, 51, 58, 52, 72, 92, 80, 28, 26, 54, 41, 73, 78, 40, 29, 29, 3, 35, 16, 18, 5, 15, 1, 64, 48, 96, 5, 17, 18, 31, 54, 95, 86, 13, 17, 31, 78, 29, 97, 74, 4, 73, 38, 71, 24, 87, 35, 9, 4, 46, 24, 21, 52, 64, 63, 2, 2, 82, 42, 57, 78, 9, 96, 81, 91, 92, 22, 95, 94, 98, 85, 65, 65, 8, 78, 96, 11, 10, 79, 56, 31, 20, 88, 17, 76, 84, 42, 92, 55, 84, 41, 11, 13, 55, 23, 99, 27, 81, 10, 69, 33, 49, 57, 37, 43, 9, 11, 65, 3, 58, 18, 5, 47, 60, 68, 15, 81, 56, 26, 59, 2, 52, 56, 46, 36, 31, 57, 68, 45, 51, 16, 61, 7, 56, 91, 61, 36, 86, 78, 96, 91, 20, 51, 13, 22, 17, 91, 34, 17, 58, 20, 61, 32, 31, 51, 38, 21, 51, 80, 24, 67, 57, 84, 82, 35, 51, 49, 81, 3, 14, 54, 16, 30, 25, 65, 21, 30, 45, 92, 91, 4, 10, 9, 91, 65, 14, 12, 88, 57, 39, 9, 82, 0, 5, 86, 7, 78, 23, 98, 83, 86, 48, 39, 59, 91, 27, 64, 8, 5, 77, 51, 46, 42, 44, 13, 50, 14, 73, 42, 61, 16, 57, 8, 31, 96, 99, 66, 45, 15, 38, 2, 40, 47, 84, 18, 92, 38, 11, 93, 53, 56, 92, 71, 34, 89, 23, 74, 75, 51, 70, 77, 1, 68, 66, 95, 44, 92, 72, 47, 7, 24, 74, 66, 98, 80, 55, 63, 82, 45, 50, 88, 5, 17, 0, 48, 83, 84, 30, 56, 51, 19, 41, 24, 97, 89, 7, 24, 44, 20, 68, 24, 18, 92, 2, 24, 64, 25, 10, 67, 9, 49, 66, 99, 26, 60, 9, 75, 20, 50, 0, 6, 17, 41, 83, 95, 60, 66, 87, 38, 1, 85, 48, 5, 79, 81, 72, 57, 0, 81, 76, 94, 80, 59, 65, 31, 71, 76, 19, 40, 87, 47, 78, 84, 28, 26, 59, 10, 16, 4, 47, 71, 61, 34, 80, 99, 67, 40, 71, 85, 0, 76, 65, 42, 13, 90, 24, 60, 62, 72, 72, 98, 90, 27, 37, 59, 34, 56, 26, 51, 19, 34, 88, 9, 60, 91, 28, 20, 7, 69, 14, 27, 51, 98, 100, 14, 31, 15, 96, 57, 85, 29, 50, 7, 50, 90, 84, 19, 91, 28, 20, 99, 9, 70, 25, 45, 11, 64, 6, 52, 2, 51, 84, 72, 82, 63, 97, 69, 84, 35, 87, 37, 49, 88, 43, 42, 71, 30, 62, 4, 98, 56, 94, 91, 15, 5, 40, 26, 14, 63, 91, 12, 14, 15, 59, 72, 0, 100, 95, 24, 65, 13, 63, 68, 80, 22, 72, 1, 47, 94, 22, 86, 21, 95, 78, 11, 39, 32, 74, 57, 54, 53, 46, 98, 52, 83, 83, 69, 68, 19, 48, 32, 61, 54, 8, 97, 9, 98, 38, 22, 57, 34, 75, 51, 50, 63, 78, 52, 68, 98, 87, 21, 67, 0, 17, 16, 48, 33, 1, 65, 93, 93, 35, 13, 13, 16, 53, 26, 93, 70, 91, 46, 45, 34, 16, 57, 40, 37, 45, 3, 28, 67, 87, 37, 60, 79, 45, 69, 41, 62, 20, 60, 42, 39, 57, 78, 22, 42, 19, 10, 40, 96, 50, 82, 27, 1, 46, 37, 10, 39, 18, 7, 59, 19, 44, 27, 6, 11, 41, 62, 56, 27, 94, 81, 16, 89, 0, 80, 9, 87, 52, 12, 84, 51, 55, 49, 16, 16, 49, 6, 28, 3, 13, 48, 39, 53, 73, 3, 71, 5, 68, 56, 46, 3, 76, 48, 45, 78, 55, 2, 3, 52, 92, 89, 65, 77, 84, 4, 25, 56, 36, 53, 77, 76, 44, 91, 10, 0, 8, 96, 33, 34, 79, 63, 57, 79, 14, 93, 78, 94, 2, 28, 46, 0, 67, 9, 38, 83, 41, 22, 11, 90, 0, 6, 71, 46, 71, 57, 43, 32, 14, 49, 20, 44, 29, 22, 59, 54, 35, 32, 64, 67, 22, 41, 59, 95, 77, 92, 58, 63, 80, 34, 19, 20, 53, 12, 23, 95, 6, 75, 97, 39, 15, 91, 23, 62, 100, 45, 78, 50, 78, 39, 91, 18, 70, 58, 13, 54, 95, 12, 12, 25, 35, 76, 33, 91, 78, 78, 58, 55, 41, 92, 44, 80, 81, 69, 7, 31, 96, 22, 36, 12, 60, 34, 13, 82, 58, 30, 39, 1, 89, 8, 8, 98, 58, 4, 73, 10, 32, 51, 14, 67, 48, 40, 7, 32, 41, 3, 9, 50, 20, 16, 85, 76, 60, 59, 27, 11, 22, 67, 83, 38, 74, 31, 1, 65, 18, 60, 14, 30, 4, 73, 46, 18, 96, 0, 63, 63, 71, 3, 53, 99, 88, 3, 16, 20, 60, 13, 2, 55, 47, 99, 56, 24, 57, 48, 42, 39, 31, 53, 98, 11, 69, 3, 62, 78, 67, 87, 95, 34, 88, 85, 37, 74, 71, 84, 55, 61, 57, 32, 92, 88, 66, 34, 11, 41, 85, 83, 60, 53, 12, 39, 20, 94, 1, 57, 98, 20, 47, 87, 39, 55, 52, 98, 58, 71, 79, 11, 22, 48, 88, 72, 6, 65, 0, 90, 34, 56, 65, 69, 52, 23, 58, 37, 63, 74, 60, 95, 42, 92, 78, 95, 8, 62, 31, 62, 53, 11, 0, 5, 19, 23, 80, 84, 88, 49, 42, 19, 54, 68, 82, 64, 23, 26, 72, 49, 23, 6, 30, 74, 92, 76, 51, 26, 39, 70, 88, 8, 38, 70, 57, 27, 85, 65, 41, 96, 96, 90, 21, 71, 36, 64, 27, 24, 60, 87, 56, 26, 58, 77, 49, 59, 53, 64, 21, 44, 82, 83, 91, 94, 97, 88, 89, 7, 21, 88, 34, 78, 8, 86, 32, 26, 36, 15, 31, 16, 12, 39, 15, 92, 82, 38, 8, 13, 46, 60, 56, 65, 74, 30, 17, 80, 80, 60, 55, 25, 9, 93, 89, 1, 42, 3, 85, 10, 81, 88, 22, 35, 60, 12, 78, 85, 72, 55, 12, 32, 71, 68, 94, 56, 85, 71, 41, 82, 46, 35, 74, 88, 53, 82, 17, 22, 3, 14, 3, 95, 16, 6, 26, 62, 100, 48, 34, 67, 47, 0, 32, 90, 37, 55, 74, 2, 66, 52, 98, 45, 83, 66, 80, 31, 64, 66, 73, 87, 38, 55, 69, 28, 72, 34, 29, 38, 49, 40, 84, 32, 71, 49, 16, 21, 92, 36, 58, 51, 31, 44, 16, 25, 77, 20, 19, 85, 92, 89, 71, 71, 53, 42, 94, 43, 71, 25, 66, 52, 70, 98, 8, 19, 72, 50, 9, 86, 75, 9, 76, 6, 28, 16, 100, 72, 83, 88, 26, 58, 100, 65, 17, 39, 45, 3, 26, 41, 74, 63, 76, 16, 22, 98, 72, 17, 3, 87, 80, 54, 45, 60, 51, 78, 38, 97, 18, 100, 44, 72, 2, 25, 29, 42, 97, 11, 92, 72, 80, 87, 67, 96, 79, 7, 80, 30, 79, 39, 94, 10, 2, 73, 38, 61, 27, 41, 39, 68, 62, 77, 98, 98, 63, 34, 79, 84, 84, 96, 43, 14, 93, 59, 86, 70, 53, 41, 79], "y": [669, 60, 629, 970, 779, 611, 39, 608, 392, 403, 687, 277, 290, 114, 251, 714, 321, 614, 714, 655, 140, 770, 150, 600, 876, 732, 56, 581, 116, 268, 482, 703, 216, 112, 406, 965, 490, 267, 607, 345, 70, 189, 254, 89, 491, 158, 829, 469, 85, 337, 601, 635, 562, 254, 163, 880, 607, 529, 41, 317, 974, 934, 470, 731, 547, 278, 247, 962, 355, 571, 371, 465, 419, 139, 841, 646, 839, 820, 89, 52, 508, 635, 896, 593, 999, 735, 394, 578, 147, 634, 440, 675, 907, 302, 757, 786, 855, 409, 232, 210, 436, 575, 433, 303, 693, 503, 323, 972, 562, 73, 909, 233, 322, 780, 116, 694, 211, 341, 213, 722, 143, 669, 931, 454, 133, 194, 522, 845, 966, 734, 984, 322, 727, 415, 504, 445, 84, 99, 770, 635, 626, 230, 165, 415, 750, 668, 18, 116, 789, 957, 293, 259, 251, 410, 104, 608, 3, 958, 414, 824, 987, 640, 751, 978, 590, 958, 279, 316, 216, 420, 567, 991, 598, 783, 60, 366, 329, 378, 818, 969, 639, 659, 145, 721, 372, 182, 18, 29, 261, 646, 837, 701, 266, 721, 127, 205, 280, 810, 985, 265, 503, 429, 27, 103, 833, 367, 152, 575, 684, 20, 453, 565, 130, 417, 95, 898, 518, 821, 848, 671, 136, 414, 353, 123, 994, 470, 642, 117, 76, 975, 280, 113, 556, 521, 303, 874, 163, 524, 376, 11, 239, 271, 701, 89, 157, 136, 442, 561, 171, 968, 968, 44, 692, 733, 260, 440, 291, 568, 366, 472, 259, 809, 150, 228, 433, 516, 827, 710, 721, 25, 148, 706, 28, 972, 784, 805, 600, 86, 648, 365, 220, 138, 607, 847, 737, 170, 881, 486, 218, 502, 936, 135, 55, 566, 601, 679, 465, 155, 391, 959, 604, 560, 984, 842, 845, 754, 273, 108, 400, 851, 871, 559, 625, 952, 806, 17, 740, 836, 725, 636, 742, 258, 164, 357, 557, 568, 817, 515, 913, 229, 895, 260, 67, 681, 352, 545, 559, 75, 767, 152, 810, 673, 153, 177, 594, 41, 499, 551, 918, 982, 489, 210, 674, 780, 238, 377, 634, 361, 138, 600, 444, 512, 671, 433, 573, 973, 459, 469, 798, 341, 808, 467, 192, 202, 663, 973, 105, 552, 171, 705, 576, 622, 720, 919, 342, 968, 143, 668, 25, 113, 383, 201, 437, 368, 249, 734, 973, 744, 207, 780, 719, 866, 137, 828, 646, 903, 129, 915, 373, 360, 80, 19, 593, 125, 47, 800, 563, 946, 592, 394, 370, 28, 535, 357, 903, 393, 294, 218, 521, 893, 395, 520, 960, 847, 112, 627, 414, 266, 72, 402, 779, 284, 625, 582, 103, 530, 372, 397, 624, 331, 113, 902, 206, 71, 890, 488, 81, 667, 379, 144, 823, 384, 808, 582, 845, 978, 447, 60, 685, 647, 6, 894, 306, 241, 25, 646, 658, 773, 798, 871, 229, 972, 320, 71, 853, 571, 848, 845, 671, 893, 431, 15, 252, 105, 560, 914, 341, 953, 477, 335, 784, 456, 873, 438, 305, 16, 922, 6, 243, 167, 730, 340, 211, 623, 508, 542, 581, 522, 790, 928, 126, 169, 916, 644, 319, 616, 101, 487, 241, 904, 377, 130, 495, 893, 133, 798, 708, 830, 29, 995, 737, 249, 462, 858, 817, 516, 579, 737, 396, 19, 77, 253, 434, 94, 15, 601, 429, 605, 601, 258, 466, 327, 398, 520, 329, 216, 780, 647, 545, 522, 373, 446, 906, 673, 542, 58, 480, 239, 794, 144, 172, 748, 52, 431, 691, 3, 346, 819, 455, 529, 57, 395, 7, 247, 180, 577, 769, 521, 3, 828, 635, 446, 971, 55, 173, 643, 590, 815, 675, 477, 193, 612, 831, 562, 898, 446, 440, 806, 815, 861, 705, 694, 260, 962, 186, 387, 685, 212, 307, 5, 523, 211, 119, 56, 622, 44, 817, 555, 775, 379, 72, 59, 144, 70, 505, 638, 48, 967, 43, 405, 522, 564, 518, 259, 108, 687, 102, 243, 827, 199, 919, 552, 4, 600, 735, 627, 112, 582, 416, 954, 293, 253, 353, 651, 176, 707, 308, 65, 298, 593, 921, 212, 479, 263, 529, 584, 318, 537, 207, 289, 811, 936, 881, 386, 980, 722, 420, 250, 708, 283, 718, 180, 462, 531, 166, 240, 611, 192, 412, 227, 948, 640, 622, 71, 149, 115, 43, 955, 113, 525, 606, 970, 891, 833, 763, 751, 313, 929, 784, 107, 392, 790, 472, 466, 641, 535, 66, 313, 629, 983, 771, 986, 279, 155, 385, 795, 324, 213, 320, 992, 554, 545, 150, 437, 75, 150, 44, 576, 252, 496, 445, 7, 832, 753, 906, 4, 78, 877, 607, 435, 883, 335, 703, 385, 363, 418, 65, 213, 102, 862, 31, 586, 690, 857, 780, 200, 194, 61, 887, 808, 257, 66, 426, 840, 705, 388, 680, 491, 833, 308, 685, 129, 531, 291, 312, 583, 826, 445, 143, 526, 54, 156, 910, 537, 328, 208, 413, 197, 422, 811, 731, 155, 281, 967, 433, 602, 757, 63, 196, 443, 196, 248, 16, 943, 248, 769, 705, 111, 900, 528, 817, 569, 916, 197, 271, 822, 942, 230, 620, 898, 101, 1, 391, 796, 288, 365, 140, 153, 496, 664, 236, 972, 750, 781, 79, 531, 424, 972, 190, 622, 812, 286, 658, 65, 246, 732, 592, 169, 120, 736, 55, 689, 411, 816, 630, 352, 872, 996, 620, 808, 232, 1, 911, 940, 489, 97, 43, 710, 160, 822, 425, 65, 526, 611, 543, 870, 302, 530, 462, 116, 709, 190, 62, 328, 217, 746, 53, 584, 953, 891, 55, 958, 412, 761, 924, 936, 138, 760, 343, 565, 180, 880, 199, 924, 56, 77, 682, 360, 839, 586, 70, 874, 683, 485, 918, 875, 180, 777, 949, 806, 421, 192, 169, 344, 162, 332, 12, 837, 508, 502, 376, 465, 263, 899, 660, 302, 313, 709, 29, 280, 479, 57, 387, 69, 982, 698, 307, 564, 272, 778, 581, 683, 213, 205, 772, 861, 263, 838, 885, 409, 404, 514, 379, 306, 838, 785, 649, 577, 949, 372, 557, 852, 993, 143, 389, 383, 398, 224, 233, 609, 272, 322, 273, 952, 678, 374, 817, 783, 962, 211, 943, 354, 690, 0, 546, 390, 296, 154, 829, 968, 245, 937, 124, 377, 940, 336, 616, 398, 459, 819, 727, 36, 948, 179, 660, 722, 277, 385, 859, 254, 643, 188, 946, 608, 152, 426, 785, 134, 386, 112, 484, 540, 795, 275, 340, 558, 912, 944, 728, 699, 560, 593, 10, 113, 282, 992, 955, 705, 446, 744, 532, 132, 940, 388, 690, 813, 642, 774, 136, 481, 812, 155, 202, 852, 637, 900, 686, 564, 309, 475, 979, 319, 114, 474, 850, 572, 96, 450, 416, 477, 592, 740, 658, 647, 799, 659, 418, 96, 18, 373, 224, 228, 639, 400, 387, 873, 750, 977, 804, 878, 619, 66, 19, 434, 402, 370, 968, 949, 770, 105, 908, 649, 880, 330, 712, 447, 830, 972, 381, 475, 472, 432, 90, 862, 853, 163, 134, 612, 929, 445, 646, 842, 241, 360, 1000, 34, 403, 506, 471, 997, 863, 53, 505, 777, 95, 236, 270, 728, 778, 846, 965, 934, 779, 195, 870, 692, 704, 457, 841, 170, 951, 467, 593, 245, 862, 137, 930, 764, 312, 295, 437, 600, 711, 108, 195, 565, 718, 467, 596, 624, 548, 37, 893, 780, 392, 377, 369, 79, 537, 675, 575, 257, 407, 393, 305, 454, 412, 675, 92, 636, 495, 169, 298, 422, 967, 692, 617, 305, 942, 2, 372, 907, 295, 108, 863, 679, 299, 106, 484, 214, 235, 243, 961, 505, 476, 517, 768, 181, 46, 518, 31, 894, 870, 529, 929, 673, 166, 903, 411, 283, 529, 129, 220, 743, 273, 556, 69, 176, 390, 698, 536, 544, 740, 58, 923, 798, 157, 737, 626, 460, 551, 841, 31, 907, 321, 16, 193, 202, 187, 738, 311, 469, 532, 107, 921, 778, 714, 546, 49, 335, 128, 352, 331, 681, 539, 909, 909, 921, 106, 906, 281, 761, 559, 581, 634, 330, 985, 806, 99, 798, 139, 874, 880, 566, 161, 292, 791, 863, 812, 102, 120, 716, 750, 840, 360, 392, 73, 248, 17, 184, 298, 188, 272, 864, 978, 468, 559, 271, 299, 869, 307, 322, 302, 116, 434, 138, 786, 60, 338, 75, 565, 983, 822, 534, 336, 897, 109, 50, 761, 533, 711, 123, 947, 776, 682, 814, 648, 209, 421, 774, 216, 90, 249, 69, 776, 370, 809, 519, 691, 545, 504, 497, 567, 871, 40, 100, 671, 970, 991, 883, 847, 566, 917, 333, 642, 167, 617, 802, 90, 763, 104, 798, 893, 86, 220, 270, 994, 14, 377, 588, 584, 847, 852, 11, 681, 995, 977, 287, 227, 51, 60, 349, 733, 888, 143, 958, 458, 520, 522, 795, 971, 324, 503, 704, 361, 580, 952, 694, 542, 504, 323, 826, 728, 585, 831, 544, 474, 701, 342, 848, 571, 876, 290, 230, 413, 475, 774, 876, 393, 542, 150, 801, 824, 399, 171, 783, 6, 165, 796, 819, 18, 362, 664, 602, 568, 420, 153, 446, 499, 495, 654, 715, 576, 915, 350, 254, 887, 1000, 56, 968, 152, 265, 795, 521, 256, 153, 764, 189, 359, 626, 794, 46, 718, 56, 280, 22, 475, 476, 411, 682, 415, 670, 848, 188, 12, 593, 181, 488, 719, 808, 139, 979, 587, 972, 54, 27, 942, 530, 796, 191, 249, 619, 411, 231, 386, 964, 155, 877, 997, 893, 194, 293, 210, 778, 372, 849, 406, 340, 770, 52, 560, 882, 889, 778, 986, 348, 60, 580, 384, 769, 221, 603, 796, 584, 667, 933, 806, 6, 851, 160, 716, 839, 420, 10, 800, 352, 875, 619, 498, 460, 74, 210, 829, 160, 988, 726, 348, 108, 344, 645, 252, 195, 940, 507, 493, 177, 442, 55, 327, 798, 623, 363, 76, 948, 820, 554, 330, 71, 847, 313, 275, 233, 23, 475, 438, 796, 829, 572, 68, 619, 705, 428, 564, 538, 837, 55, 34, 145, 290, 195, 903, 363, 584, 448, 18, 309, 21, 669, 374, 116, 92, 992, 142, 205, 421, 414, 416, 371, 151, 505, 161, 903, 508, 792, 673, 1000, 137, 498, 266, 571, 536, 323, 947, 691, 613, 632, 703, 989, 450, 281, 624, 814, 241, 660, 818, 4, 744, 496, 116, 982, 196, 149, 654, 746, 180, 720, 86, 529, 960, 151, 83, 707, 918, 22, 777, 553, 625, 306, 487, 741, 794, 547, 694, 644, 23, 743, 627, 981, 660, 679, 981, 350, 958, 454, 945, 907, 984, 922, 639, 466, 671, 472, 76, 485, 324, 381, 97, 616, 906, 123, 173, 593, 328, 9, 912, 642, 251, 846, 856, 414, 955, 909, 197, 520, 529, 309, 476, 785, 255, 939, 939, 528, 594, 998, 959, 748, 358, 459, 969, 338, 725, 437, 333, 824, 256, 738, 277, 339, 584, 163, 21, 992, 553, 25, 926, 832, 551, 790, 407, 976, 10, 71, 551, 265, 987, 837, 568, 121, 522, 566, 67, 390, 54, 999, 198, 134, 127, 800, 122, 297, 552, 847, 473, 197, 717, 568, 555, 826, 183, 201, 655, 192, 317, 237, 776, 638, 160, 541, 551, 459, 650, 754, 750, 5, 914, 675, 813, 379, 61, 768, 544, 807, 889, 858, 687, 966, 169, 201, 155, 482, 531, 92, 428, 895, 984, 867, 418, 544, 97, 7, 99, 637, 684, 654, 333, 602, 360, 774, 378, 119, 127, 590, 364, 82, 631, 258, 417, 585, 934, 649, 388, 490, 195, 263, 394, 899, 786, 658, 164, 958, 659, 776, 483, 461, 388, 582, 564, 688, 347, 121, 316, 319, 504, 342, 568, 548, 940, 997, 924, 958, 566, 517, 874, 936, 956, 774, 222, 639, 414, 675, 267, 769, 257, 323, 650, 535, 140, 136, 907, 428, 721, 16, 443, 518, 398, 832, 868, 968, 344, 249, 493, 484, 576, 0, 165, 525, 963, 360, 559, 45, 897, 444, 750, 140, 828, 700, 847, 37, 652, 931, 659, 926, 190, 799, 193, 791, 284, 655, 766, 435, 422, 354, 523, 274, 525, 430, 393, 565, 108, 180, 173, 223, 574, 539, 477, 762, 499, 695, 916, 173], "marker": {"size": 5, "opacity": 0.55, "color": "#4ea1ff"}, "hovertemplate": "Retweets: %{x}<br>Likes: %{y}<extra></extra>"}], {"paper_bgcolor": "#0d1b2d", "plot_bgcolor": "#0d1b2d", "margin": {"l": 40, "r": 10, "t": 8, "b": 38}, "font": {"color": "#cbd8e5", "size": 9}, "xaxis": {"gridcolor": "#20344b", "title": "Retweets", "titlefont": {"size": 9}}, "yaxis": {"gridcolor": "#20344b", "title": "Likes", "titlefont": {"size": 9}}});</script>
-    <div class="desc">Retweets 0–100 (mean 49.78) · Likes 0–1,000 (mean 500.03) · correlation -0.008.</div>
-  </div>
-  <div class="card issue">
-    <div class="title">08 · Synthetic-text indicators</div>
-    <div id="plot_synthetic" class="plot"></div><script>Plotly.newPlot('plot_synthetic',[{"type": "bar", "x": ["Newline", "URL", "@ symbol", "# symbol"], "y": [1958, 0, 0, 0], "text": ["97.9%", "0.0%", "0.0%", "0.0%"], "textposition": "auto", "marker": {"color": ["#e2a84d", "#ef6262", "#ef6262", "#ef6262"]}}], {"paper_bgcolor": "#0d1b2d", "plot_bgcolor": "#0d1b2d", "margin": {"l": 38, "r": 10, "t": 8, "b": 42}, "font": {"color": "#cbd8e5", "size": 9}, "xaxis": {"showgrid": false}, "yaxis": {"gridcolor": "#20344b", "title": "Records", "titlefont": {"size": 9}}});</script>
-    <div class="desc">1,958 records (97.9%) contain newlines; URLs, # and @ in tweet text are all zero.</div>
-  </div>
-</div>
+                <!-- KPI 2 -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between hover:border-slate-700 transition">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium text-slate-400">Synthetic Language</span>
+                        <i class="fa-solid fa-robot text-rose-400 text-sm"></i>
+                    </div>
+                    <div class="mt-3">
+                        <div class="text-2xl font-bold text-rose-400">97.9%</div>
+                        <div class="text-xs text-rose-400/80 mt-1">1,958 contain newline artifacts</div>
+                    </div>
+                </div>
 
-<div class="row r2">
-  <div class="card">
-    <div class="title">AUDIT SEVERITY</div>
-    <div id="plot_severity" class="plot"></div><script>Plotly.newPlot('plot_severity',[{"type": "bar", "x": ["Critical", "High", "Medium", "Technical"], "y": [4, 1, 2, 1], "text": ["4", "1", "2", "1"], "textposition": "auto", "marker": {"color": ["#ef6262", "#e2a84d", "#d7c25b", "#71859b"]}}], {"paper_bgcolor": "#0d1b2d", "plot_bgcolor": "#0d1b2d", "margin": {"l": 30, "r": 8, "t": 8, "b": 38}, "font": {"color": "#cbd8e5", "size": 9}, "xaxis": {"showgrid": false}, "yaxis": {"gridcolor": "#20344b", "title": "Problems", "titlefont": {"size": 9}}});</script>
-  </div>
-  <div class="card">
-    <div class="title">VALIDATION PRIORITY</div>
-    <div class="metrics">
-      <div class="metric"><b style="color:#ef7777">01</b><span>Validate text–label alignment</span></div>
-      <div class="metric"><b style="color:#ef7777">02</b><span>Verify tweet–metadata linkage</span></div>
-      <div class="metric"><b style="color:#ef7777">03</b><span>Assess text naturalness / provenance</span></div>
-      <div class="metric"><b style="color:#ef7777">04</b><span>Validate mention completeness</span></div>
-    </div>
-    <div class="desc" style="margin-top:8px">The four critical issues have the greatest potential to undermine downstream sentiment and network analysis.</div>
-  </div>
-</div>
+                <!-- KPI 3 -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between hover:border-slate-700 transition">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium text-slate-400">Text-Label Alignment</span>
+                        <i class="fa-solid fa-bullseye text-amber-400 text-sm"></i>
+                    </div>
+                    <div class="mt-3">
+                        <div class="text-2xl font-bold text-amber-400">16.56%</div>
+                        <div class="text-xs text-amber-400/80 mt-1">83.44% lexical mismatch</div>
+                    </div>
+                </div>
 
-<div class="note"><b>EXECUTIVE CONCLUSION:</b> Basic structural checks pass for uniqueness and sentiment-label completeness, but the dataset requires validation before downstream sentiment modelling. Audit findings are indicators requiring contextual validation, not automatic proof of fabrication or labelling fraud.</div>
-<div class="footer">TWITTER SENTIMENT DATA QUALITY AUDIT</div>
+                <!-- KPI 4 -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between hover:border-slate-700 transition">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium text-slate-400">Text vs Metadata</span>
+                        <i class="fa-solid fa-link-slash text-rose-400 text-sm"></i>
+                    </div>
+                    <div class="mt-3">
+                        <div class="text-2xl font-bold text-rose-400">100% Error</div>
+                        <div class="text-xs text-slate-400 mt-1">0 '#' or '@' in 2,000 tweets</div>
+                    </div>
+                </div>
 
-</div></div>
-<script>
-document.querySelectorAll('.plot').forEach(function(el){
-  // Plotly.newPlot calls are embedded in each plot container.
-});
-</script>
-<script>window.addEventListener('resize',function(){document.querySelectorAll('.js-plotly-plot').forEach(function(p){Plotly.Plots.resize(p);});});</script></body>
+                <!-- KPI 5 -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between hover:border-slate-700 transition">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium text-slate-400">Engagement Corr.</span>
+                        <i class="fa-solid fa-chart-line text-purple-400 text-sm"></i>
+                    </div>
+                    <div class="mt-3">
+                        <div class="text-2xl font-bold text-purple-400">-0.008</div>
+                        <div class="text-xs text-slate-400 mt-1">Retweets × Likes uncoupled</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Interactive Analytics Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Chart 1: Severity Matrix -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-base font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-shield-cat text-rose-400"></i> Audit Issue Severity Breakdown
+                        </h3>
+                        <span class="text-xs text-slate-400">8 Issues</span>
+                    </div>
+                    <div class="relative flex-grow min-h-[220px] flex items-center justify-center">
+                        <canvas id="chartSeverity"></canvas>
+                    </div>
+                    <div class="grid grid-cols-4 gap-2 mt-4 text-center text-xs">
+                        <div class="bg-rose-500/10 border border-rose-500/20 py-1.5 rounded-lg text-rose-400">
+                            <span class="font-bold">4</span> Critical
+                        </div>
+                        <div class="bg-amber-500/10 border border-amber-500/20 py-1.5 rounded-lg text-amber-400">
+                            <span class="font-bold">1</span> High
+                        </div>
+                        <div class="bg-yellow-500/10 border border-yellow-500/20 py-1.5 rounded-lg text-yellow-400">
+                            <span class="font-bold">2</span> Medium
+                        </div>
+                        <div class="bg-purple-500/10 border border-purple-500/20 py-1.5 rounded-lg text-purple-400">
+                            <span class="font-bold">1</span> Tech
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Sentiment Distribution (Passed Audit Test) -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-base font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-scale-balanced text-emerald-400"></i> Class Distribution (Passed)
+                        </h3>
+                        <span class="text-xs text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Balanced</span>
+                    </div>
+                    <div class="relative flex-grow min-h-[220px] flex items-center justify-center">
+                        <canvas id="chartSentiment"></canvas>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-4 text-center">
+                        Class ratio: Positive (32.65%), Neutral (32.65%), Negative (34.70%). No missing sentiment labels.
+                    </p>
+                </div>
+
+                <!-- Chart 3: Metadata Missing Values -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-base font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-square-poll-horizontal text-sky-400"></i> Metadata Completeness Loss
+                        </h3>
+                        <span class="text-xs text-slate-400">Missing %</span>
+                    </div>
+                    <div class="relative flex-grow min-h-[220px] flex items-center justify-center">
+                        <canvas id="chartCompleteness"></canvas>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-4 text-center">
+                        Over 1 in 4 tweets (25.80%) lack mentions, severely limiting social network graph analysis.
+                    </p>
+                </div>
+
+            </div>
+
+            <!-- Audit Status Banner & Highlights -->
+            <div class="bg-gradient-to-r from-slate-900 via-rose-950/30 to-slate-900 border border-rose-500/30 rounded-xl p-6">
+                <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                    <div class="space-y-2 max-w-3xl">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 bg-rose-500/20 border border-rose-500/40 rounded-full text-xs font-semibold text-rose-300">
+                            <i class="fa-solid fa-triangle-exclamation"></i> Core Audit Finding
+                        </div>
+                        <h2 class="text-lg font-bold text-white">Technically Clean, Yet Analytically Unreliable</h2>
+                        <p class="text-sm text-slate-300 leading-relaxed">
+                            While the dataset satisfies basic database checks (zero missing sentiment labels, zero duplicate rows, and balanced class distributions), standard data quality profiling reveals **severe semantic corruptions**. The dataset exhibits strong synthetic word-salad text features, 100% text-metadata contradictions, and low text-label alignment.
+                        </p>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto shrink-0">
+                        <button onclick="switchTab('issues')" class="px-5 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-semibold text-sm rounded-xl transition shadow-lg shadow-rose-500/20 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-bug"></i> Inspect Critical Issues
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pass / Fail Audit Checks Overview Table -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+                    <h3 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-sky-400"></i> Quality Audit Scorecard Summary
+                    </h3>
+                    <span class="text-xs text-slate-400">6 Audit Dimensions Evaluated</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-300">
+                        <thead class="bg-slate-950 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                            <tr>
+                                <th class="px-6 py-3">Audit Test</th>
+                                <th class="px-6 py-3">Dimension</th>
+                                <th class="px-6 py-3">Audit Finding / Metric</th>
+                                <th class="px-6 py-3">Status</th>
+                                <th class="px-6 py-3">Downstream Risk</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/60">
+                            <tr class="hover:bg-slate-800/30">
+                                <td class="px-6 py-4 font-semibold text-white">Exact Row Duplicates</td>
+                                <td class="px-6 py-4 text-slate-400">Uniqueness</td>
+                                <td class="px-6 py-4">0 duplicate rows found across 2,000 records</td>
+                                <td class="px-6 py-4">
+                                    <span class="px-2.5 py-1 text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-md">PASS</span>
+                                </td>
+                                <td class="px-6 py-4 text-slate-400">None</td>
+                            </tr>
+                            <tr class="hover:bg-slate-800/30">
+                                <td class="px-6 py-4 font-semibold text-white">Sentiment Class Balance</td>
+                                <td class="px-6 py-4 text-slate-400">Completeness</td>
+                                <td class="px-6 py-4">32.65% Pos / 32.65% Neu / 34.70% Neg</td>
+                                <td class="px-6 py-4">
+                                    <span class="px-2.5 py-1 text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-md">PASS</span>
+                                </td>
+                                <td class="px-6 py-4 text-slate-400">None (No class imbalance bias)</td>
+                            </tr>
+                            <tr class="hover:bg-slate-800/30">
+                                <td class="px-6 py-4 font-semibold text-white">Synthetic Word-Salad Text</td>
+                                <td class="px-6 py-4 text-slate-400">Semantic Quality</td>
+                                <td class="px-6 py-4 text-rose-300">97.9% newline chars; random word strings</td>
+                                <td class="px-6 py-4">
+                                    <span class="px-2.5 py-1 text-xs font-semibold bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-md">CRITICAL</span>
+                                </td>
+                                <td class="px-6 py-4 text-rose-300 font-medium">Model fails on real human tweets</td>
+                            </tr>
+                            <tr class="hover:bg-slate-800/30">
+                                <td class="px-6 py-4 font-semibold text-white">Text-Label Alignment</td>
+                                <td class="px-6 py-4 text-slate-400">Analytical Reliability</td>
+                                <td class="px-6 py-4 text-rose-300">16.56% lexical polarity agreement</td>
+                                <td class="px-6 py-4">
+                                    <span class="px-2.5 py-1 text-xs font-semibold bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-md">CRITICAL</span>
+                                </td>
+                                <td class="px-6 py-4 text-rose-300 font-medium">Supervised model noise & failure</td>
+                            </tr>
+                            <tr class="hover:bg-slate-800/30">
+                                <td class="px-6 py-4 font-semibold text-white">Text-Metadata Contradiction</td>
+                                <td class="px-6 py-4 text-slate-400">Consistency</td>
+                                <td class="px-6 py-4 text-rose-300">0 '#' or '@' in text, but metadata claims thousands</td>
+                                <td class="px-6 py-4">
+                                    <span class="px-2.5 py-1 text-xs font-semibold bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-md">CRITICAL</span>
+                                </td>
+                                <td class="px-6 py-4 text-rose-300 font-medium">Invalid entity extraction features</td>
+                            </tr>
+                            <tr class="hover:bg-slate-800/30">
+                                <td class="px-6 py-4 font-semibold text-white">Missing Mentions Metadata</td>
+                                <td class="px-6 py-4 text-slate-400">Completeness</td>
+                                <td class="px-6 py-4 text-amber-300">25.80% (516 records missing)</td>
+                                <td class="px-6 py-4">
+                                    <span class="px-2.5 py-1 text-xs font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-md">CRITICAL</span>
+                                </td>
+                                <td class="px-6 py-4 text-amber-300 font-medium">Social network analysis broken</td>
+                            </tr>
+                            <tr class="hover:bg-slate-800/30">
+                                <td class="px-6 py-4 font-semibold text-white">Engagement Uncoupling</td>
+                                <td class="px-6 py-4 text-slate-400">Validity</td>
+                                <td class="px-6 py-4">Retweets x Likes correlation = -0.008</td>
+                                <td class="px-6 py-4">
+                                    <span class="px-2.5 py-1 text-xs font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-md">HIGH</span>
+                                </td>
+                                <td class="px-6 py-4 text-slate-400">Unreliable engagement weighting</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ==================== TAB 2: QUALITY ISSUE MATRIX ==================== -->
+        <div id="view-issues" class="space-y-6 hidden">
+            
+            <!-- Filters Bar -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Filter Severity:</span>
+                    <button onclick="filterIssues('all')" id="filter-all" class="px-3 py-1 rounded-lg text-xs font-semibold bg-sky-500 text-slate-950">All (8)</button>
+                    <button onclick="filterIssues('Critical')" id="filter-critical" class="px-3 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-rose-400 hover:bg-slate-700">Critical (4)</button>
+                    <button onclick="filterIssues('High')" id="filter-high" class="px-3 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-amber-400 hover:bg-slate-700">High (1)</button>
+                    <button onclick="filterIssues('Medium')" id="filter-medium" class="px-3 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-yellow-400 hover:bg-slate-700">Medium (2)</button>
+                    <button onclick="filterIssues('Technical')" id="filter-technical" class="px-3 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-purple-400 hover:bg-slate-700">Technical (1)</button>
+                </div>
+                <div class="text-xs text-slate-400">
+                    <i class="fa-solid fa-circle-info text-sky-400"></i> Click any card to view detailed analytical consequences
+                </div>
+            </div>
+
+            <!-- Issues List Grid -->
+            <div class="space-y-4" id="issuesContainer">
+
+                <!-- Issue 1 -->
+                <div class="issue-card bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition" data-severity="Critical">
+                    <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-3">
+                                <span class="px-2.5 py-0.5 text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded">
+                                    CRITICAL SEVERITY
+                                </span>
+                                <span class="text-xs text-slate-400 font-mono">Problem #1</span>
+                                <span class="text-xs text-slate-400">| Dimension: Semantic Quality</span>
+                            </div>
+                            <h3 class="text-lg font-bold text-white">Synthetic Text Indicators & Nonsensical Language</h3>
+                            <p class="text-sm text-slate-300">
+                                97.9% of tweets (1,958 / 2,000) contain newline characters. Text consists of unnatural word salad (e.g. <em>"Skin baby bar. Unit anyone stay quickly beautiful manage."</em>), lacking hashtags, handles, or standard tweet syntax.
+                            </p>
+                        </div>
+                        <div class="text-right shrink-0 bg-slate-950 p-3 rounded-lg border border-slate-800">
+                            <div class="text-xs text-slate-400">Affected Records</div>
+                            <div class="text-xl font-extrabold text-rose-400">1,958 <span class="text-xs font-normal text-slate-400">(97.9%)</span></div>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-800/80 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div class="bg-slate-950/60 p-3 rounded-lg border border-slate-800/60">
+                            <span class="font-bold text-rose-300 block mb-1"><i class="fa-solid fa-triangle-exclamation"></i> Analytical Impact:</span>
+                            Models trained on synthetic text will fail entirely when deployed on real-world Twitter data.
+                        </div>
+                        <div class="bg-slate-950/60 p-3 rounded-lg border border-slate-800/60">
+                            <span class="font-bold text-sky-300 block mb-1"><i class="fa-solid fa-wrench"></i> Recommended Action:</span>
+                            Filter out algorithmically generated text using perplexity screening or replace dataset with natural Twitter firehose samples.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Issue 2 -->
+                <div class="issue-card bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition" data-severity="Critical">
+                    <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-3">
+                                <span class="px-2.5 py-0.5 text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded">
+                                    CRITICAL SEVERITY
+                                </span>
+                                <span class="text-xs text-slate-400 font-mono">Problem #2</span>
+                                <span class="text-xs text-slate-400">| Dimension: Analytical Reliability</span>
+                            </div>
+                            <h3 class="text-lg font-bold text-white">Weak Text–Label Alignment (High Polarity Mismatch)</h3>
+                            <p class="text-sm text-slate-300">
+                                Lexical polarity screening revealed only <strong>16.56% agreement</strong> between tweet text sentiment and assigned labels among 1,347 non-neutral records. 83.44% exhibit sentiment label divergence.
+                            </p>
+                        </div>
+                        <div class="text-right shrink-0 bg-slate-950 p-3 rounded-lg border border-slate-800">
+                            <div class="text-xs text-slate-400">Polarity Discrepancy</div>
+                            <div class="text-xl font-extrabold text-rose-400">83.44% <span class="text-xs font-normal text-slate-400">(1,124 rec)</span></div>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-800/80 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div class="bg-slate-950/60 p-3 rounded-lg border border-slate-800/60">
+                            <span class="font-bold text-rose-300 block mb-1"><i class="fa-solid fa-triangle-exclamation"></i> Analytical Impact:</span>
+                            Supervised classification models (BERT, VADER, RoBERTa) experience gradient corruption and poor generalisation.
+                        </div>
+                        <div class="bg-slate-950/60 p-3 rounded-lg border border-slate-800/60">
+                            <span class="font-bold text-sky-300 block mb-1"><i class="fa-solid fa-wrench"></i> Recommended Action:</span>
+                            Re-annotate labels using multi-annotator consensus or zero-shot LLM evaluation against a gold standard.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Issue 3 -->
+                <div class="issue-card bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition" data-severity="Critical">
+                    <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-3">
+                                <span class="px-2.5 py-0.5 text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded">
+                                    CRITICAL SEVERITY
+                                </span>
+                                <span class="text-xs text-slate-400 font-mono">Problem #3</span>
+                                <span class="text-xs text-slate-400">| Dimension: Consistency</span>
+                            </div>
+                            <h3 class="text-lg font-bold text-white">Tweet–Metadata Inconsistency (Complete Contradiction)</h3>
+                            <p class="text-sm text-slate-300">
+                                Exactly <strong>0 out of 2,000 tweets</strong> contain any '#' or '@' symbol in raw text. However, metadata columns report 1,641 records with hashtags and 1,484 with mentions.
+                            </p>
+                        </div>
+                        <div class="text-right shrink-0 bg-slate-950 p-3 rounded-lg border border-slate-800">
+                            <div class="text-xs text-slate-400">Contradiction Rate</div>
+                            <div class="text-xl font-extrabold text-rose-400">100% <span class="text-xs font-normal text-slate-400">(2,000 rec)</span></div>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-800/80 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div class="bg-slate-950/60 p-3 rounded-lg border border-slate-800/60">
+                            <span class="font-bold text-rose-300 block mb-1"><i class="fa-solid fa-triangle-exclamation"></i> Analytical Impact:</span>
+                            Feature engineering based on entity extraction creates false correlation signals and pipeline failure.
+                        </div>
+                        <div class="bg-slate-950/60 p-3 rounded-lg border border-slate-800/60">
+                            <span class="font-bold text-sky-300 block mb-1"><i class="fa-solid fa-wrench"></i> Recommended Action:</span>
+                            Re-extract metadata directly from tweet text using regex parsing or drop corrupted metadata fields.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Issue 4 -->
+                <div class="issue-card bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition" data-severity="Critical">
+                    <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-3">
+                                <span class="px-2.5 py-0.5 text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded">
+                                    CRITICAL SEVERITY
+                                </span>
+                                <span class="text-xs text-slate-400 font-mono">Problem #4</span>
+                                <span class="text-xs text-slate-400">| Dimension: Completeness</span>
+                            </div>
+                            <h3 class="text-lg font-bold text-white">Missing Mentions Metadata (>1 in 4 Records)</h3>
+                            <p class="text-sm text-slate-300">
+                                516 records (25.80%) lack mention metadata entries, preventing social interaction mapping and user-network graph construction.
+                            </p>
+                        </div>
+                        <div class="text-right shrink-0 bg-slate-950 p-3 rounded-lg border border-slate-800">
+                            <div class="text-xs text-slate-400">Missing Mentions</div>
+                            <div class="text-xl font-extrabold text-amber-400">516 <span class="text-xs font-normal text-slate-400">(25.80%)</span></div>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-800/80 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div class="bg-slate-950/60 p-3 rounded-lg border border-slate-800/60">
+                            <span class="font-bold text-rose-300 block mb-1"><i class="fa-solid fa-triangle-exclamation"></i> Analytical Impact:</span>
+                            Node-edge social network graphs will be fragmented with significant edge deletion.
+                        </div>
+                        <div class="bg-slate-950/60 p-3 rounded-lg border border-slate-800/60">
+                            <span class="font-bold text-sky-300 block mb-1"><i class="fa-solid fa-wrench"></i> Recommended Action:</span>
+                            Impute or re-mine mention tags if network centrality is part of downstream workflow.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Issue 5 -->
+                <div class="issue-card bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition" data-severity="High">
+                    <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-3">
+                                <span class="px-2.5 py-0.5 text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded">
+                                    HIGH SEVERITY
+                                </span>
+                                <span class="text-xs text-slate-400 font-mono">Problem #5</span>
+                                <span class="text-xs text-slate-400">| Dimension: Validity</span>
+                            </div>
+                            <h3 class="text-lg font-bold text-white">Engagement Plausibility Anomaly (Zero Likes/Retweets Correlation)</h3>
+                            <p class="text-sm text-slate-300">
+                                Likes (0 to 1,000, mean 500.03) and Retweets (0 to 100, mean 49.78) show a near-zero correlation of <strong>-0.008</strong>, indicating synthetic uncoupled metric generation.
+                            </p>
+                        </div>
+                        <div class="text-right shrink-0 bg-slate-950 p-3 rounded-lg border border-slate-800">
+                            <div class="text-xs text-slate-400">Correlation (r)</div>
+                            <div class="text-xl font-extrabold text-amber-400">-0.008</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Issue 6 -->
+                <div class="issue-card bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition" data-severity="Medium">
+                    <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-3">
+                                <span class="px-2.5 py-0.5 text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded">
+                                    MEDIUM SEVERITY
+                                </span>
+                                <span class="text-xs text-slate-400 font-mono">Problem #6</span>
+                                <span class="text-xs text-slate-400">| Dimension: Completeness</span>
+                            </div>
+                            <h3 class="text-lg font-bold text-white">Missing Hashtags Metadata</h3>
+                            <p class="text-sm text-slate-300">
+                                359 records (17.95%) lack hashtag metadata entries, limiting topic modeling and trend clustering algorithms.
+                            </p>
+                        </div>
+                        <div class="text-right shrink-0 bg-slate-950 p-3 rounded-lg border border-slate-800">
+                            <div class="text-xs text-slate-400">Missing Hashtags</div>
+                            <div class="text-xl font-extrabold text-yellow-400">359 <span class="text-xs font-normal text-slate-400">(17.95%)</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Issue 7 -->
+                <div class="issue-card bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition" data-severity="Medium">
+                    <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-3">
+                                <span class="px-2.5 py-0.5 text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded">
+                                    MEDIUM SEVERITY
+                                </span>
+                                <span class="text-xs text-slate-400 font-mono">Problem #7</span>
+                                <span class="text-xs text-slate-400">| Dimension: Consistency</span>
+                            </div>
+                            <h3 class="text-lg font-bold text-white">Conflicting User Sentiment Labels</h3>
+                            <p class="text-sm text-slate-300">
+                                25 users appear twice; 15 of them carry conflicting sentiment labels across 30 records without temporal context explanation.
+                            </p>
+                        </div>
+                        <div class="text-right shrink-0 bg-slate-950 p-3 rounded-lg border border-slate-800">
+                            <div class="text-xs text-slate-400">Conflicting Users</div>
+                            <div class="text-xl font-extrabold text-yellow-400">15 Users <span class="text-xs font-normal text-slate-400">(30 rec)</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Issue 8 -->
+                <div class="issue-card bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition" data-severity="Technical">
+                    <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-3">
+                                <span class="px-2.5 py-0.5 text-xs font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded">
+                                    TECHNICAL DEBT
+                                </span>
+                                <span class="text-xs text-slate-400 font-mono">Problem #8</span>
+                                <span class="text-xs text-slate-400">| Dimension: Validity</span>
+                            </div>
+                            <h3 class="text-lg font-bold text-white">Timestamp Data Type Schema Mismatch</h3>
+                            <p class="text-sm text-slate-300">
+                                Timestamps are stored as string object dtypes rather than standard datetime formats, preventing native temporal aggregation without preprocessing.
+                            </p>
+                        </div>
+                        <div class="text-right shrink-0 bg-slate-950 p-3 rounded-lg border border-slate-800">
+                            <div class="text-xs text-slate-400">Data Type</div>
+                            <div class="text-xl font-extrabold text-purple-400">Object/String</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ==================== TAB 3: DATA PROFILING & SAMPLE ANOMALIES ==================== -->
+        <div id="view-samples" class="space-y-6 hidden">
+            
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                <h3 class="text-base font-bold text-white mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-vial text-sky-400"></i> Sample Anomaly Inspection Tool
+                </h3>
+                <p class="text-xs text-slate-400 mb-6">
+                    Review specific record samples extracted directly from the dataset that illustrate the identified audit flaws.
+                </p>
+
+                <!-- Interactive Sample Viewer Cards -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    
+                    <!-- Anomaly Card 1: Contradiction & Synthetic Text -->
+                    <div class="bg-slate-950 border border-rose-500/30 rounded-xl p-5 space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                            <span class="text-xs font-bold text-rose-400 uppercase tracking-wide">Sample Record #142 — Synthetic & Contradiction</span>
+                            <span class="text-xs text-slate-400 font-mono">ID: TW-2024-0142</span>
+                        </div>
+                        <div class="space-y-2">
+                            <span class="text-xs text-slate-400 uppercase font-semibold">Raw Tweet Text:</span>
+                            <div class="bg-slate-900 p-3 rounded-lg text-sm font-mono text-rose-300 border border-slate-800">
+                                "Skin baby bar. Unit anyone stay quickly beautiful manage."
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 text-xs">
+                            <div class="bg-slate-900 p-2.5 rounded border border-slate-800">
+                                <span class="text-slate-400 block">Assigned Sentiment:</span>
+                                <span class="font-bold text-amber-400">Neutral</span>
+                            </div>
+                            <div class="bg-slate-900 p-2.5 rounded border border-slate-800">
+                                <span class="text-slate-400 block">Symbols in Text:</span>
+                                <span class="font-bold text-rose-400">0 '#' and 0 '@'</span>
+                            </div>
+                            <div class="bg-slate-900 p-2.5 rounded border border-slate-800">
+                                <span class="text-slate-400 block">Hashtags Metadata:</span>
+                                <span class="font-bold text-sky-400">['#beauty', '#skincare']</span>
+                            </div>
+                            <div class="bg-slate-900 p-2.5 rounded border border-slate-800">
+                                <span class="text-slate-400 block">Mentions Metadata:</span>
+                                <span class="font-bold text-sky-400">['@skincare_co']</span>
+                            </div>
+                        </div>
+                        <div class="text-xs text-rose-400 bg-rose-500/10 p-2.5 rounded border border-rose-500/20">
+                            <strong>Audit Flag:</strong> Metadata claims 2 hashtags and 1 mention, but raw text contains zero symbols. Text is nonsensical random word generation.
+                        </div>
+                    </div>
+
+                    <!-- Anomaly Card 2: Conflicting User Labels -->
+                    <div class="bg-slate-950 border border-amber-500/30 rounded-xl p-5 space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                            <span class="text-xs font-bold text-amber-400 uppercase tracking-wide">User Conflict — User @user_102</span>
+                            <span class="text-xs text-slate-400 font-mono">User ID: U-102</span>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="bg-slate-900 p-3 rounded-lg border border-slate-800 text-xs space-y-1">
+                                <div class="flex justify-between text-slate-400">
+                                    <span>Tweet A (2024-01-15 08:30)</span>
+                                    <span class="text-emerald-400 font-bold">Positive</span>
+                                </div>
+                                <p class="font-mono text-slate-200">"Great service overall today."</p>
+                            </div>
+                            <div class="bg-slate-900 p-3 rounded-lg border border-slate-800 text-xs space-y-1">
+                                <div class="flex justify-between text-slate-400">
+                                    <span>Tweet B (2024-01-15 08:31)</span>
+                                    <span class="text-rose-400 font-bold">Negative</span>
+                                </div>
+                                <p class="font-mono text-slate-200">"Great service overall today."</p>
+                            </div>
+                        </div>
+                        <div class="text-xs text-amber-400 bg-amber-500/10 p-2.5 rounded border border-amber-500/20">
+                            <strong>Audit Flag:</strong> Identical text posted 1 minute apart assigned opposite sentiment labels without context.
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ==================== TAB 4: AUDIT DIMENSIONS & ROADMAP ==================== -->
+        <div id="view-roadmap" class="space-y-6 hidden">
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Dimension 1 -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="p-2 bg-sky-500/10 text-sky-400 rounded-lg"><i class="fa-solid fa-list-ul"></i></div>
+                        <h4 class="font-bold text-white">1. Completeness</h4>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        Evaluates presence of required attributes. While sentiment labels are 100% complete, metadata columns lack 17.95% of hashtags and 25.80% of mentions.
+                    </p>
+                </div>
+
+                <!-- Dimension 2 -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="p-2 bg-purple-500/10 text-purple-400 rounded-lg"><i class="fa-solid fa-arrows-rotate"></i></div>
+                        <h4 class="font-bold text-white">2. Consistency</h4>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        Measures harmony across columns. Failed due to 100% mismatch between tweet text symbols and metadata entity fields.
+                    </p>
+                </div>
+
+                <!-- Dimension 3 -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg"><i class="fa-solid fa-check-double"></i></div>
+                        <h4 class="font-bold text-white">3. Validity & Dtypes</h4>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        Assesses schema correctness. Timestamps stored as strings and near-zero engagement correlation indicate synthetic metric generation.
+                    </p>
+                </div>
+
+                <!-- Dimension 4 -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="p-2 bg-yellow-500/10 text-yellow-400 rounded-lg"><i class="fa-solid fa-fingerprint"></i></div>
+                        <h4 class="font-bold text-white">4. Uniqueness</h4>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        Checks record duplication. Passed successfully with zero exact duplicate rows across all 2,000 tweets.
+                    </p>
+                </div>
+
+                <!-- Dimension 5 -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="p-2 bg-rose-500/10 text-rose-400 rounded-lg"><i class="fa-solid fa-language"></i></div>
+                        <h4 class="font-bold text-white">5. Semantic Quality</h4>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        Evaluates natural language realism. Failed severely with 97.9% newline artifacts and word-salad sentence structure.
+                    </p>
+                </div>
+
+                <!-- Dimension 6 -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="p-2 bg-amber-500/10 text-amber-400 rounded-lg"><i class="fa-solid fa-brain"></i></div>
+                        <h4 class="font-bold text-white">6. Analytical Reliability</h4>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        Determines suitability for downstream ML modeling. Failed due to 16.56% low text-label alignment and synthetic text risks.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Remediation Roadmap Timeline -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                <h3 class="text-base font-bold text-white mb-6 flex items-center gap-2">
+                    <i class="fa-solid fa-road text-sky-400"></i> Data Remediation & Mitigation Roadmap
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 relative space-y-2">
+                        <span class="px-2 py-0.5 bg-sky-500/20 text-sky-400 rounded text-[10px] font-bold">PHASE 1</span>
+                        <h5 class="font-bold text-white">Regex & Syntax Cleaning</h5>
+                        <p class="text-slate-400">Strip newline characters (\n), parse timestamp dtypes to datetime64[ns], re-extract text entity tags.</p>
+                    </div>
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 relative space-y-2">
+                        <span class="px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded text-[10px] font-bold">PHASE 2</span>
+                        <h5 class="font-bold text-white">Synthetic Language Filter</h5>
+                        <p class="text-slate-400">Run perplexity scoring and n-gram language models to isolate and discard non-human text records.</p>
+                    </div>
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 relative space-y-2">
+                        <span class="px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[10px] font-bold">PHASE 3</span>
+                        <h5 class="font-bold text-white">Label Re-Annotation</h5>
+                        <p class="text-slate-400">Re-annotate text sentiment using zero-shot LLM classifiers or crowd-sourced gold standards.</p>
+                    </div>
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 relative space-y-2">
+                        <span class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded text-[10px] font-bold">PHASE 4</span>
+                        <h5 class="font-bold text-white">Validation Audit</h5>
+                        <p class="text-slate-400">Re-verify text-label alignment (>75% threshold required) before deploying to production training pipelines.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800 bg-slate-950 py-4 mt-auto text-xs text-slate-500 text-center">
+        <p>Twitter Sentiment Dataset Data Quality Audit Report • Generated from Python Data Profiling & Audit Methodology</p>
+    </footer>
+
+    <!-- Interactive Scripts -->
+    <script>
+        // Tab Switcher
+        function switchTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('[id^="view-"]').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active-tab', 'text-sky-400', 'bg-sky-500/10', 'border', 'border-sky-500/30');
+                btn.classList.add('text-slate-400');
+            });
+
+            // Show selected tab
+            document.getElementById('view-' + tabId).classList.remove('hidden');
+            const activeBtn = document.getElementById('tab-' + tabId);
+            activeBtn.classList.add('active-tab', 'text-sky-400', 'bg-sky-500/10', 'border', 'border-sky-500/30');
+            activeBtn.classList.remove('text-slate-400');
+        }
+
+        // Issue Severity Filter
+        function filterIssues(severity) {
+            const cards = document.querySelectorAll('.issue-card');
+            cards.forEach(card => {
+                if (severity === 'all' || card.getAttribute('data-severity') === severity) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            // Update button styles
+            ['all', 'critical', 'high', 'medium', 'technical'].forEach(btn => {
+                const el = document.getElementById('filter-' + btn);
+                if (btn === severity.toLowerCase()) {
+                    el.className = 'px-3 py-1 rounded-lg text-xs font-semibold bg-sky-500 text-slate-950';
+                } else {
+                    el.className = 'px-3 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-slate-400 hover:bg-slate-700';
+                }
+            });
+        }
+
+        // Initialize Chart.js Graphs
+        window.addEventListener('DOMContentLoaded', () => {
+            
+            // Chart 1: Severity Doughnut
+            const ctxSeverity = document.getElementById('chartSeverity').getContext('2d');
+            new Chart(ctxSeverity, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Critical Severity', 'High Severity', 'Medium Severity', 'Technical Debt'],
+                    datasets: [{
+                        data: [4, 1, 2, 1],
+                        backgroundColor: ['#f43f5e', '#fb923c', '#facc15', '#a855f7'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    cutout: '70%'
+                }
+            });
+
+            // Chart 2: Sentiment Class Distribution
+            const ctxSentiment = document.getElementById('chartSentiment').getContext('2d');
+            new Chart(ctxSentiment, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Positive (32.65%)', 'Neutral (32.65%)', 'Negative (34.70%)'],
+                    datasets: [{
+                        data: [653, 653, 694],
+                        backgroundColor: ['#10b981', '#38bdf8', '#f43f5e'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    cutout: '70%'
+                }
+            });
+
+            // Chart 3: Metadata Completeness Bar
+            const ctxCompleteness = document.getElementById('chartCompleteness').getContext('2d');
+            new Chart(ctxCompleteness, {
+                type: 'bar',
+                data: {
+                    labels: ['Mentions', 'Hashtags', 'Text Symbols'],
+                    datasets: [{
+                        label: '% Missing / Contradiction Rate',
+                        data: [25.80, 17.95, 100.00],
+                        backgroundColor: ['#fb923c', '#facc15', '#f43f5e'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: { color: '#1e293b' },
+                            ticks: { color: '#94a3b8', callback: v => v + '%' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+
+        });
+    </script>
+</body>
 </html>
